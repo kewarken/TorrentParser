@@ -6,8 +6,20 @@ import pprint
 class TorrentParser:
     """Torrent file parsing class. """
     def __init__(self):
-        # Algorithm overview
-        # We keep three stacks. The state stack
+        # Algorithm overview:
+        #
+        # We keep three stacks. The state stack always has the current
+        # structure which we're adding to (either a list or a dict).
+        #
+        # The keyStack is the names of keys which are waiting for values.
+        # This allows us to descend into nested structures and know which
+        # key the returned value will be set to.
+        #
+        # The isKey stack is a stack of booleans to know when we have a
+        # key-value pair. Every time we get data, we toggle the top of isKey
+        # and when isKey is false, we pop a key from keyStack and enter the
+        # data with that key. Note that isKey is only relevant to dicts so we
+        # only add new values when we add a new dict to stateStack
         self.stateStack = []
         self.keyStack = []
         self.isKey = []
