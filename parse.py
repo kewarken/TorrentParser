@@ -6,8 +6,10 @@ import pprint
 class TorrentParser:
     """Torrent file parsing class. """
     def __init__(self):
-        self.state_stack = []
-        self.key_stack = []
+        # Algorithm overview
+        # We keep three stacks. The state stack
+        self.stateStack = []
+        self.keyStack = []
         self.isKey = []
         self.parsedFile = None
 
@@ -29,19 +31,19 @@ class TorrentParser:
 
     def _parseDict(self, f):
         print("Starting dict")
-        self.state_stack.append({})
+        self.stateStack.append({})
         self.isKey.append(True)
 
     def _parseList(self, f):
         print("Starting list")
-        self.state_stack.append([])
+        self.stateStack.append([])
 
     def _addData(self, struct, data):
         if type(struct) is dict:
             if self.isKey[-1]:
-                self.key_stack.append(data)
+                self.keyStack.append(data)
             else:
-                key = self.key_stack.pop()
+                key = self.keyStack.pop()
                 struct[key] = data
             self.isKey[-1] = not self.isKey[-1]
 
@@ -64,31 +66,31 @@ class TorrentParser:
                     self._parseDict(f)
 
                 elif byte == b'i':
-                    cur_struct = self.state_stack[-1]
+                    curStruct = self.stateStack[-1]
                     num = self._parseInt(f)
-                    self._addData(cur_struct, num)
+                    self._addData(curStruct, num)
                     print("Got integer: " + str(num))
 
                 elif byte == b'l':
                     self._parseList(f)
 
                 elif byte == b'e':
-                    data = self.state_stack.pop()
+                    data = self.stateStack.pop()
                     if type(data) is dict:
                         self.isKey.pop()
-                    if len(self.state_stack) == 0:
+                    if len(self.stateStack) == 0:
                         self.parsedFile = data
                         print("Ending" + str(type(data)))
                     else:
-                        cur_struct = self.state_stack[-1]
-                        self._addData(cur_struct, data)
-                        print("Ending" + str(type(cur_struct)))
+                        curStruct = self.stateStack[-1]
+                        self._addData(curStruct, data)
+                        print("Ending" + str(type(curStruct)))
 
                 elif byte >= b'0' and byte <= b'9':
-                    cur_struct = self.state_stack[-1]
+                    curStruct = self.stateStack[-1]
                     data = self._parseByteString(f, byte)
 
-                    self._addData(cur_struct, data)
+                    self._addData(curStruct, data)
 
                     print("Got byte string: " + str(data))
 
