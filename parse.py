@@ -3,6 +3,14 @@ import sys
 import getopt
 import pprint
 
+class TorrentParserError(Exception):
+    def __init__(self, path, offset):
+        self.path = path
+        self.offset = offset
+
+    def __str__(self):
+        return "Error parsing file " + self.path + " at file offset " + str(self.offset)
+
 class TorrentParser:
     """Torrent file parsing class. """
     def __init__(self):
@@ -25,45 +33,55 @@ class TorrentParser:
         self.isKey = []
         self.parsedFile = None
 
-    def _parseInt(self, f):
-        byte = f.read(1)
+    def _parseInt(self):
+        byte = self.fileHandle.read(1)
         num = 0
         while byte and byte != b'e':
             num = num * 10 + int(byte) - int(b'0')
-            byte = f.read(1)
+            byte = self.fileHandle.read(1)
         return num
 
-    def _parseByteString(self, f, firstByte):
+    def _parseByteString(self, firstByte):
         num = int(firstByte) - int(b'0')
-        byte = f.read(1)
+        byte = self.fileHandle.read(1)
         while byte and byte != b':':
             num = num * 10 + int(byte) - int(b'0')
-            byte = f.read(1)
-        return f.read(num)
+            byte = self.fileHandle.read(1)
+        return self.fileHandle.read(num)
 
-    def _parseDict(self, f):
-        print("Starting dict")
+    def _parseDict(self):
         self.stateStack.append({})
         self.isKey.append(True)
 
-    def _parseList(self, f):
-        print("Starting list")
+    def _parseList(self):
         self.stateStack.append([])
 
     def _addData(self, struct, data):
-        if type(struct) is dict:
-            if self.isKey[-1]:
-                self.keyStack.append(data)
+        failed = False
+        try:
+            if type(struct) is dict:
+                if self.isKey[-1]:
+                    self.keyStack.append(data)
+                else:
+                    key = self.keyStack.pop()
+                    struct[key] = data
+                self.isKey[-1] = not self.isKey[-1]
+
+            elif type(struct) is list:
+                struct.append(data)
+
             else:
-                key = self.keyStack.pop()
-                struct[key] = data
-            self.isKey[-1] = not self.isKey[-1]
+                raise TorrentParserError(self.filename, self.fileHandle.tell())
+        except TypeError:
+            # if the parser gets scrambled, we usually get a type error from
+            # trying to hash a list or a dict...catch it and raise our own
+            # Python 3 doesn't let us clobber the original and throw our own
+            # so cheat and set a flag
+            failed = True
 
-        elif type(struct) is list:
-            struct.append(data)
+        if failed:
+            raise TorrentParserError(self.filename, self.fileHandle.tell())
 
-        else:
-            print("Ooops...")
 
     def getData(self):
         """Return the parsed torrent file data."""
@@ -71,20 +89,20 @@ class TorrentParser:
 
     def parseFile(self, filename):
         """Parse a torrent file."""
-        with open(filename, "rb") as f:
-            byte = f.read(1)
+        self.filename = filename
+        with open(filename, "rb") as self.fileHandle:
+            byte = self.fileHandle.read(1)
             while byte:
                 if byte == b'd':
-                    self._parseDict(f)
+                    self._parseDict()
 
                 elif byte == b'i':
                     curStruct = self.stateStack[-1]
-                    num = self._parseInt(f)
+                    num = self._parseInt()
                     self._addData(curStruct, num)
-                    print("Got integer: " + str(num))
 
                 elif byte == b'l':
-                    self._parseList(f)
+                    self._parseList()
 
                 elif byte == b'e':
                     data = self.stateStack.pop()
@@ -92,28 +110,28 @@ class TorrentParser:
                         self.isKey.pop()
                     if len(self.stateStack) == 0:
                         self.parsedFile = data
-                        print("Ending" + str(type(data)))
                     else:
                         curStruct = self.stateStack[-1]
                         self._addData(curStruct, data)
-                        print("Ending" + str(type(curStruct)))
 
                 elif byte >= b'0' and byte <= b'9':
                     curStruct = self.stateStack[-1]
-                    data = self._parseByteString(f, byte)
+                    data = self._parseByteString(byte)
 
                     self._addData(curStruct, data)
 
-                    print("Got byte string: " + str(data))
-
                 else:
-                    print("That's probably not right...")
+                    raise TorrentParserError(self.filename, self.fileHandle.tell())
 
-                byte = f.read(1)
+                byte = self.fileHandle.read(1)
 
 def processTorrent(filename):
     tp = TorrentParser()
-    tp.parseFile(filename)
+    try:
+        tp.parseFile(filename)
+    except TorrentParserError as ex:
+        print(ex)
+        return
     pp = pprint.PrettyPrinter()
     pp.pprint(tp.getData())
 
@@ -139,7 +157,7 @@ Torrent file parsing library. Testable from command line with:
         sys.exit(1)
 
     for arg in args:
-        processTorrent(arg) # process() is defined elsewhere
+        processTorrent(arg)
 
 if __name__ == "__main__":
     main()
