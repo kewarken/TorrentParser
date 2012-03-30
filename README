@@ -5,3 +5,5 @@ torrent files.
 
 Note that this requires python 3 but probably wouldn't be too much work
 to downgrade.
+
+TorrentParse.py is a standalone module and parse.py is a test driver.
