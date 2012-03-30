@@ -1,3 +1,5 @@
+# Note: requires python 3.
+
 class TorrentParserError(Exception):
     """
 Torrent parsing exception. Contains path and character offset of
@@ -88,6 +90,21 @@ class TorrentParser:
         if failed:
             raise TorrentParserError(self.filename, self.fileHandle.tell())
 
+    def getKey(self, key):
+        """
+Retrieve a key value from the parsed torrent file. Key can be specified
+with dots to retrieve nested info. e.g. getKey("info.name") will return
+the value of the 'name' key from the 'info' key.
+        """
+        if not self.parsedFile:
+            return None
+
+        value = self.parsedFile
+        for k in key.split("."):
+            if not k in value:
+                return None
+            value = value[k]
+        return value
 
     def getData(self):
         """Return the parsed torrent file data."""
