@@ -61,14 +61,21 @@ class TorrentParser:
         try:
             if type(struct) is dict:
                 if self.isKey[-1]:
-                    self.keyStack.append(data)
+                    self.keyStack.append(data.decode())
                 else:
                     key = self.keyStack.pop()
-                    struct[key] = data
+                    # pieces is a bunch of SHA-1 hashes - don't decode
+                    if key != "pieces" and type(data) is bytes:
+                        struct[key] = data.decode()
+                    else:
+                        struct[key] = data
                 self.isKey[-1] = not self.isKey[-1]
 
             elif type(struct) is list:
-                struct.append(data)
+                if type(data) is bytes:
+                    struct.append(data.decode())
+                else:
+                    struct.append(data)
 
             else:
                 raise TorrentParserError(self.filename, self.fileHandle.tell())
