@@ -1,0 +1,7 @@
+Fun python project to parse a torrent file.
+
+Not particularly robust but should get all the data out of well formed
+torrent files.
+
+Note that this requires python 3 but probably wouldn't be too much work
+to downgrade.
