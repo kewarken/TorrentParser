@@ -57,6 +57,14 @@ class TorrentParser:
     def _parseList(self):
         self.stateStack.append([])
 
+    def _splitPieces(self, data):
+        pieceSize = 20 # 160 bit SHA-1 = 20 bytes
+        pieces = []
+        pieceCount = int(len(data) / pieceSize)
+        for i in range(pieceCount):
+            pieces.append(data[i * pieceSize : (i+1) * pieceSize - 1])
+        return pieces
+
     def _addData(self, struct, data):
         failed = False
         try:
@@ -68,6 +76,8 @@ class TorrentParser:
                     # pieces is a bunch of SHA-1 hashes - don't decode
                     if key != "pieces" and type(data) is bytes:
                         struct[key] = data.decode()
+                    elif key == "pieces":
+                        struct[key] = self._splitPieces(data)
                     else:
                         struct[key] = data
                 self.isKey[-1] = not self.isKey[-1]

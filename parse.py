@@ -49,6 +49,9 @@ def processTorrent(filename, verbose):
                 print(" md5sum: " + f["md5sum"])
             else:
                 print()
+    pieces = tp.getKey("info.pieces")
+    if pieces:
+        print("Number of pieces: {}".format(len(pieces)))
 
 def main():
     """
