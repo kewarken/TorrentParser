@@ -13,7 +13,7 @@ def getLengthStr(length):
     while length > 1024:
         length = length / 1024
         suffixIndex = suffixIndex + 1
-    return "{:2g}{}".format(length, suffixes[suffixIndex])
+    return "{}{}".format(round(length,1), suffixes[suffixIndex])
 
 def processTorrent(filename, verbose):
     tp = TorrentParser()
