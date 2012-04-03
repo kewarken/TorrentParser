@@ -39,10 +39,12 @@ def processTorrent(filename, verbose):
     files = tp.getKey("info.files")
     if files:
         for f in files:
-            # Not perfectly handled since "path" is a list and may contain
-            # multiple entries but good enough for demo purposes
-            print("File: {} ({})".format(f["path"][0],
-                getLengthStr(f["length"])), end='')
+            # Not perfectly handled since "path" is a list and I don't know
+            # exactly how multiple entries should be used or printed
+            print("File: ", end='')
+            for p in f["path"] :
+                print(p, end="")
+            print(" ({})".format(getLengthStr(f["length"])), end='')
             if "md5sum" in f:
                 print(" md5sum: " + f["md5sum"])
             else:
